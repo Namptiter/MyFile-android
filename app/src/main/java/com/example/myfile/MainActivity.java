@@ -2,17 +2,21 @@ package com.example.myfile;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -29,27 +33,33 @@ public class MainActivity extends AppCompatActivity {
     ListView view_List_File;
     int idCnt = 0;
     private static final int STORE = 101;
+    ListView choose;
+    String[] path;
+    private IntentFilter intentFilter = new IntentFilter("INITIAL CHECK");
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Back button
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
         //Request permission
         ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.READ_EXTERNAL_STORAGE}, STORE);
 
         //Read file
-        String path = Environment.getExternalStorageDirectory().getAbsolutePath();
-        File f = new File(path);
+        path = new String[]{Environment.getExternalStorageDirectory().getAbsolutePath()};
+        File f = new File(path[0]);
         File[] files = f.listFiles();
-
-
+        
         //Bind file
         fileList = new ArrayList<>();
         for(int i=0;i<files.length;i++){
             if(files[i].isDirectory())
                 fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
             else fileList.add(new mFile(idCnt++,files[i].getName(),"6 kb","file",files[i].getAbsolutePath()));
-
         }
 
         fileAdapter = new MyAdapterFile(fileList);
@@ -57,12 +67,63 @@ public class MainActivity extends AppCompatActivity {
         view_List_File.setAdapter(fileAdapter);
 
         //Choose file
-    }
+        choose = findViewById(R.id.list_file);
+        choose.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int ii, long l) {
+                path[0] = fileList.get(ii).path;
+                File f = new File(path[0]);
+                File[] files = f.listFiles();
+                fileList.clear();
 
+                fileList = new ArrayList<>();
+                for(int i=0;i<files.length;i++){
+                    if(files[i].isDirectory())
+                        fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
+                    else fileList.add(new mFile(idCnt++,files[i].getName(),"6 kb","file",files[i].getAbsolutePath()));
+                }
+
+                fileAdapter = new MyAdapterFile(fileList);
+                view_List_File = findViewById(R.id.list_file);
+                view_List_File.setAdapter(fileAdapter);
+            }
+        });
+    }
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions,
-                                           @NonNull int[] grantResults)
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                if(path[0].equals(Environment.getExternalStorageDirectory().getAbsolutePath())){
+                    return true;
+                }
+                int i = path[0].length()-1;
+                for(;path[0].charAt(i)!='/';i--){
+                }
+                path[0] = path[0].substring(0,i);
+                File f = new File(path[0]);
+                File[] files = f.listFiles();
+                fileList.clear();
+
+                fileList = new ArrayList<>();
+                for(i=0;i<files.length;i++){
+                    if(files[i].isDirectory())
+                        fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
+                    else fileList.add(new mFile(idCnt++,files[i].getName(),"6 kb","file",files[i].getAbsolutePath()));
+                }
+
+                fileAdapter = new MyAdapterFile(fileList);
+                view_List_File = findViewById(R.id.list_file);
+                view_List_File.setAdapter(fileAdapter);
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
     {
         if (requestCode == STORE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
