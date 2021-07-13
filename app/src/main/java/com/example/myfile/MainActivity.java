@@ -7,8 +7,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -21,7 +19,6 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     ListView choose;
     String[] path;
     boolean cBox = false;
-    private IntentFilter intentFilter = new IntentFilter("INITIAL CHECK");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
+
     class mFile{
         int id;
         String name;
@@ -201,6 +198,15 @@ public class MainActivity extends AppCompatActivity {
             return fileList.get(i).id;
         }
 
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+        @Override
+        public int getViewTypeCount() {
+            return getCount();
+        }
+        @Override
+        public int getItemViewType(int position) {
+            return position;
+        }
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
         @Override
         public View getView(int i, View view, ViewGroup viewGroup) {
