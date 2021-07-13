@@ -13,12 +13,15 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -59,18 +62,23 @@ public class MainActivity extends AppCompatActivity {
         for(int i=0;i<files.length;i++){
             if(files[i].isDirectory())
                 fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
-            else fileList.add(new mFile(idCnt++,files[i].getName(),"6 kb","file",files[i].getAbsolutePath()));
+            else {
+                fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
+            }
         }
 
         fileAdapter = new MyAdapterFile(fileList);
         view_List_File = findViewById(R.id.list_file);
         view_List_File.setAdapter(fileAdapter);
 
-        //Choose file
+        //Go to Directory
         choose = findViewById(R.id.list_file);
         choose.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int ii, long l) {
+                if(fileList.get(ii).type.equals("file")) {
+                    return;
+                }
                 path[0] = fileList.get(ii).path;
                 File f = new File(path[0]);
                 File[] files = f.listFiles();
@@ -80,18 +88,27 @@ public class MainActivity extends AppCompatActivity {
                 for(int i=0;i<files.length;i++){
                     if(files[i].isDirectory())
                         fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
-                    else fileList.add(new mFile(idCnt++,files[i].getName(),"6 kb","file",files[i].getAbsolutePath()));
+                    else {
+                        fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
+                    }
                 }
-
                 fileAdapter = new MyAdapterFile(fileList);
                 view_List_File = findViewById(R.id.list_file);
                 view_List_File.setAdapter(fileAdapter);
             }
         });
     }
+    //Show menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.tool_menu, menu);
+        return true;
+    }
+
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
+            //Back to parent Directory
             case android.R.id.home:
                 if(path[0].equals(Environment.getExternalStorageDirectory().getAbsolutePath())){
                     return true;
@@ -108,19 +125,36 @@ public class MainActivity extends AppCompatActivity {
                 for(i=0;i<files.length;i++){
                     if(files[i].isDirectory())
                         fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
-                    else fileList.add(new mFile(idCnt++,files[i].getName(),"6 kb","file",files[i].getAbsolutePath()));
+                    else {
+                        fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
+                    }
                 }
 
                 fileAdapter = new MyAdapterFile(fileList);
                 view_List_File = findViewById(R.id.list_file);
                 view_List_File.setAdapter(fileAdapter);
                 return true;
+
+                //Choose menu
+            case R.id.menu_choose:
+                for(int ii=0;ii<fileList.size();ii++){
+                    CheckBox b = null;
+                    try {
+                         b = (CheckBox) view_List_File.getChildAt(ii).findViewById(R.id.checkbox);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        continue;
+                    }
+
+                    if(b!=null) b.setVisibility(View.VISIBLE);
+                }
+                return true;
+            case R.id.menu_copy:
+                return true;
+            case R.id.menu_delete:
+                return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
@@ -179,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
         public View getView(int i, View view, ViewGroup viewGroup) {
             mFile f = (mFile) getItem(i);
             View myView;
-            String pre = "";
+            String pre = "B";
             if(view==null){
                 myView = View.inflate(viewGroup.getContext(),R.layout.file_view,null);
             }else myView = view;
