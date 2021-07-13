@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int STORE = 101;
     ListView choose;
     String[] path;
+    boolean cBox = false;
     private IntentFilter intentFilter = new IntentFilter("INITIAL CHECK");
 
     @Override
@@ -129,7 +130,6 @@ public class MainActivity extends AppCompatActivity {
                         fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
                     }
                 }
-
                 fileAdapter = new MyAdapterFile(fileList);
                 view_List_File = findViewById(R.id.list_file);
                 view_List_File.setAdapter(fileAdapter);
@@ -137,17 +137,10 @@ public class MainActivity extends AppCompatActivity {
 
                 //Choose menu
             case R.id.menu_choose:
-                for(int ii=0;ii<fileList.size();ii++){
-                    CheckBox b = null;
-                    try {
-                         b = (CheckBox) view_List_File.getChildAt(ii).findViewById(R.id.checkbox);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        continue;
-                    }
-
-                    if(b!=null) b.setVisibility(View.VISIBLE);
-                }
+                cBox = !cBox;
+                fileAdapter = new MyAdapterFile(fileList);
+                view_List_File = findViewById(R.id.list_file);
+                view_List_File.setAdapter(fileAdapter);
                 return true;
             case R.id.menu_copy:
                 return true;
@@ -225,6 +218,13 @@ public class MainActivity extends AppCompatActivity {
             }
             ((TextView) myView.findViewById(R.id.file_name)).setText(String.format("%s",f.name));
             ((TextView) myView.findViewById(R.id.file_size)).setText(String.format("%s"+pre,f.size));
+            if(cBox==true){
+                CheckBox checkBox = (CheckBox) myView.findViewById(R.id.checkbox);
+                checkBox.setVisibility(View.VISIBLE);
+            }else {
+                CheckBox checkBox = (CheckBox) myView.findViewById(R.id.checkbox);
+                checkBox.setVisibility(View.GONE);
+            }
             return myView;
         }
     }
