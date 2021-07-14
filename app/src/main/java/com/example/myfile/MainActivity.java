@@ -5,9 +5,12 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -22,7 +25,6 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.io.File;
 import java.util.ArrayList;
 
@@ -41,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         // Back button
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
@@ -74,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int ii, long l) {
                 if(fileList.get(ii).type.equals("file")) {
+                    File ff =new File(fileList.get(ii).path);
+                    openFile(ff);
                     return;
                 }
                 path[0] = fileList.get(ii).path;
@@ -171,8 +174,14 @@ public class MainActivity extends AppCompatActivity {
                 view_List_File.setAdapter(fileAdapter);
                 return true;
             case R.id.menu_new:
-                File folder = new File(path[0] + "/Folder"+Integer.toString(fileList.size()));
-                if(!folder.exists()) folder.mkdir();
+                int con = 0;
+                while(true){
+                    File folder = new File(path[0] + "/Folder"+fileList.size()+con);
+                    if(!folder.exists()){
+                        folder.mkdir();
+                        break;
+                    }else con++;
+                }
                 f = new File(path[0]);
                 files = f.listFiles();
                 fileList.clear();
@@ -277,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
             }
             ((TextView) myView.findViewById(R.id.file_name)).setText(String.format("%s",f.name));
             ((TextView) myView.findViewById(R.id.file_size)).setText(String.format("%s"+pre,f.size));
-            if(cBox==true){
+            if(cBox){
                 CheckBox checkBox = (CheckBox) myView.findViewById(R.id.checkbox);
                 checkBox.setVisibility(View.VISIBLE);
             }else {
@@ -286,5 +295,14 @@ public class MainActivity extends AppCompatActivity {
             }
             return myView;
         }
+    }
+    public void openFile(File file) {
+        Uri uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file);
+        String mime = getContentResolver().getType(uri);
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, mime);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(intent);
     }
 }
