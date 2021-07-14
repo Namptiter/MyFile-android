@@ -126,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
                         fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
                     }
                 }
+                cBox = false;
                 fileAdapter = new MyAdapterFile(fileList);
                 view_List_File = findViewById(R.id.list_file);
                 view_List_File.setAdapter(fileAdapter);
@@ -141,9 +142,61 @@ public class MainActivity extends AppCompatActivity {
             case R.id.menu_copy:
                 return true;
             case R.id.menu_delete:
+                for(int ii=0;ii<fileList.size();ii++){
+                    try {
+                        CheckBox c = (CheckBox) view_List_File.getChildAt(ii).findViewById(R.id.checkbox);
+                        if(c.isChecked()){
+                            File file_del = new File(fileList.get(ii).path);
+                            deleteFile(file_del);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                f = new File(path[0]);
+                files = f.listFiles();
+                fileList.clear();
+
+                fileList = new ArrayList<>();
+                for(i=0;i<files.length;i++){
+                    if(files[i].isDirectory())
+                        fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
+                    else {
+                        fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
+                    }
+                }
+                cBox = false;
+                fileAdapter = new MyAdapterFile(fileList);
+                view_List_File = findViewById(R.id.list_file);
+                view_List_File.setAdapter(fileAdapter);
+                return true;
+            case R.id.menu_new:
+                File folder = new File(path[0] + "/Folder"+Integer.toString(fileList.size()));
+                if(!folder.exists()) folder.mkdir();
+                f = new File(path[0]);
+                files = f.listFiles();
+                fileList.clear();
+
+                fileList = new ArrayList<>();
+                for(i=0;i<files.length;i++){
+                    if(files[i].isDirectory())
+                        fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
+                    else {
+                        fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
+                    }
+                }
+                fileAdapter = new MyAdapterFile(fileList);
+                view_List_File = findViewById(R.id.list_file);
+                view_List_File.setAdapter(fileAdapter);
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+    public void deleteFile(File f){
+        if(f.isDirectory()) {
+            for(File child : f.listFiles()) deleteFile(child);
+        }
+        f.delete();
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
@@ -199,8 +252,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-        @Override
         public int getViewTypeCount() {
+            if(getCount()<1) return 1;
             return getCount();
         }
         @Override

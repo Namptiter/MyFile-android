@@ -16,4 +16,9 @@
         app:showAsAction="never"
         android:title="Copy">
     </item>
+    <item
+        android:id="@+id/menu_new"
+        app:showAsAction="never"
+        android:title="New folder">
+    </item>
 </menu>
