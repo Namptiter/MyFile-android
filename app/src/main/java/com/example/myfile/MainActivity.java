@@ -35,6 +35,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     ArrayList<mFile> fileList;
+    ArrayList<String> pathFileCopy;
     MyAdapterFile fileAdapter;
     ListView view_List_File;
     int idCnt = 0;
@@ -43,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
     String[] path;
     boolean cBox = false;
     boolean Past = false;
+    private int tool_menu;
+    boolean isDel = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,7 +61,11 @@ public class MainActivity extends AppCompatActivity {
         path = new String[]{Environment.getExternalStorageDirectory().getAbsolutePath()};
         File f = new File(path[0]);
         File[] files = f.listFiles();
-        
+
+
+        //Copy file init
+        pathFileCopy = new ArrayList<>();
+
         //Bind file
         fileList = new ArrayList<>();
         for(int i=0;i<files.length;i++){
@@ -108,7 +115,15 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.tool_menu, menu);
         return true;
     }
-
+    @Override
+    public boolean onPrepareOptionsMenu (Menu menu) {
+        if (Past) {
+            menu.findItem(R.id.menu_past).setEnabled(true);
+        }else{
+            menu.findItem(R.id.menu_past).setEnabled(false);
+        }
+        return true;
+    }
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
@@ -149,6 +164,28 @@ public class MainActivity extends AppCompatActivity {
                 view_List_File.setAdapter(fileAdapter);
                 return true;
             case R.id.menu_copy:
+                copyFile();
+                cBox = false;
+                view_List_File.setAdapter(fileAdapter);
+                return true;
+            case R.id.menu_move:
+                copyFile();
+                cBox = false;
+                isDel = true;
+                view_List_File.setAdapter(fileAdapter);
+                return true;
+            case R.id.menu_past:
+                Past = false;
+                moveFile();
+                cBox = false;
+                if(isDel){
+                    isDel = false;
+                    for(String flc : pathFileCopy){
+                        File g = new File(flc);
+                        deleteFile(g);
+                    }
+                }
+                updateView();
                 return true;
             case R.id.menu_delete:
                 for(int ii=0;ii<fileList.size();ii++){
@@ -168,27 +205,12 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
-                f = new File(path[0]);
-                files = f.listFiles();
-                fileList.clear();
-
-                fileList = new ArrayList<>();
-                for(i=0;i<files.length;i++){
-                    if(files[i].isDirectory())
-                        fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
-                    else {
-                        fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
-                    }
-                }
-                cBox = false;
-                fileAdapter = new MyAdapterFile(fileList);
-                view_List_File = findViewById(R.id.list_file);
-                view_List_File.setAdapter(fileAdapter);
+                updateView();
                 return true;
             case R.id.menu_new:
                 int con = 0;
                 while(true){
-                    File folder = new File(path[0] + "/Folder"+Integer.toString(fileList.size()+con));
+                    File folder = new File(path[0] + "/Folder"+Integer.toString(con));
                     if(!folder.exists()){
                         folder.mkdir();
                         break;
@@ -318,71 +340,120 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
     public static class CopyUtil {
-        // utility method which is exposed to the outside
-        public static void copyDirectory(File sourceDir, File destDir)
-                throws IOException {
-            // creates the destination directory if it does not exist
-            if (!destDir.exists()) {
-                destDir.mkdirs();
-            }
+        public static void copyFile(File src, File dst) {
+            try {
 
-            // throws exception if the source does not exist
-            if (!sourceDir.exists()) {
-                throw new IllegalArgumentException("sourceDir does not exist");
-            }
-
-            // throws exception if the arguments are not directories
-            if (sourceDir.isFile() || destDir.isFile()) {
-                throw new IllegalArgumentException(
-                        "Either sourceDir or destDir is not a directory");
-            }
-
-            copyDirectoryImpl(sourceDir, destDir);
-        }
-
-        // implementation of copy directory method
-        private static void copyDirectoryImpl(File sourceDir, File destDir)
-                throws IOException {
-            File[] items = sourceDir.listFiles();
-            if (items != null && items.length > 0) {
-                for (File anItem : items) {
-                    if (anItem.isDirectory()) {
-                        // create the directory in the destination
-                        File newDir = new File(destDir, anItem.getName());
-                        System.out.println("CREATED DIR: "
-                                + newDir.getAbsolutePath());
-                        newDir.mkdir();
-
-                        // copy the directory (recursive call)
-                        copyDirectory(anItem, newDir);
-                    } else {
-                        // copy the file
-                        File destFile = new File(destDir, anItem.getName());
-                        copySingleFile(anItem, destFile);
+                if (src.isDirectory()) {
+                    if (!dst.exists()) {
+                        dst.mkdirs();
                     }
+                    String[] children = src.list();
+                    for (int i = 0; i < children.length; i++) {
+                        copyFile(new File(src, children[i]), new File(
+                                dst, children[i]));
+                    }
+                } else {
+
+                    copySingleFile(src, dst);
                 }
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
         // copy a file
         private static void copySingleFile(File sourceFile, File destFile)
                 throws IOException {
+            if (!destFile.getParentFile().exists())
+                destFile.getParentFile().mkdirs();
+
             if (!destFile.exists()) {
                 destFile.createNewFile();
             }
-            FileChannel sourceChannel = null;
-            FileChannel destChannel = null;
+
+            FileChannel source = null;
+            FileChannel destination = null;
+
             try {
-                sourceChannel = new FileInputStream(sourceFile).getChannel();
-                destChannel = new FileOutputStream(destFile).getChannel();
-                sourceChannel.transferTo(0, sourceChannel.size(), destChannel);
+                source = new FileInputStream(sourceFile).getChannel();
+                destination = new FileOutputStream(destFile).getChannel();
+                destination.transferFrom(source, 0, source.size());
             } finally {
-                if (sourceChannel != null) {
-                    sourceChannel.close();
+                if (source != null) {
+                    source.close();
                 }
-                if (destChannel != null) {
-                    destChannel.close();
+                if (destination != null) {
+                    destination.close();
                 }
+            }
+        }
+    }
+    public void updateView(){
+        File f = new File(path[0]);
+        File[] files = f.listFiles();
+        fileList.clear();
+
+        fileList = new ArrayList<>();
+        for(int i=0;i<files.length;i++){
+            if(files[i].isDirectory())
+                fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
+            else {
+                fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
+            }
+        }
+        cBox = false;
+        fileAdapter = new MyAdapterFile(fileList);
+        view_List_File = findViewById(R.id.list_file);
+        view_List_File.setAdapter(fileAdapter);
+    }
+    public void moveFile(){
+        String dst = null;
+        for(int ii=0;ii<fileList.size();ii++) {
+            try {
+                CheckBox c = (CheckBox) view_List_File.getChildAt(ii).findViewById(R.id.checkbox);
+                TextView t = view_List_File.getChildAt(ii).findViewById(R.id.file_name);
+                if (c.isChecked()) {
+                    for (mFile fi : fileList) {
+                        if (fi.name.equals(t.getText().toString())) {
+                            dst = fi.path;
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if(dst!=null){
+            File dF = new File(dst);
+            for(String p : pathFileCopy){
+                File sF = new File(p);
+                if(sF.isDirectory()){
+                    dF = new File(dst,sF.getName());
+                    dF.mkdir();
+                    CopyUtil.copyFile(sF,dF.getAbsoluteFile());
+                }else CopyUtil.copyFile(sF,dF);
+            }
+        }
+    }
+    public void copyFile(){
+        if (pathFileCopy!=null) pathFileCopy.clear();
+        Past = true;
+        for(int ii=0;ii<fileList.size();ii++){
+            try {
+                CheckBox c = (CheckBox) view_List_File.getChildAt(ii).findViewById(R.id.checkbox);
+                TextView t = view_List_File.getChildAt(ii).findViewById(R.id.file_name);
+                if(c.isChecked()){
+                    for(mFile fi : fileList){
+                        if(fi.name.equals(t.getText().toString())){
+                            pathFileCopy.add(fi.path);
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
