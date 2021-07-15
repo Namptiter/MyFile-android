@@ -7,9 +7,9 @@
         android:title="Choose">
     </item>
     <item
-        android:id="@+id/menu_delete"
+        android:id="@+id/menu_new"
         app:showAsAction="never"
-        android:title="Delete">
+        android:title="New folder">
     </item>
     <item
         android:id="@+id/menu_copy"
@@ -17,8 +17,19 @@
         android:title="Copy">
     </item>
     <item
-        android:id="@+id/menu_new"
+        android:id="@+id/menu_move"
         app:showAsAction="never"
-        android:title="New folder">
+        android:title="Move">
+    </item>
+    <item
+        android:id="@+id/menu_past"
+        app:showAsAction="never"
+        android:title="Past"
+        android:enabled="false">
+    </item>
+    <item
+        android:id="@+id/menu_delete"
+        app:showAsAction="never"
+        android:title="Delete">
     </item>
 </menu>

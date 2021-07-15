@@ -26,6 +26,10 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
@@ -38,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     ListView choose;
     String[] path;
     boolean cBox = false;
-
+    boolean Past = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -111,6 +115,8 @@ public class MainActivity extends AppCompatActivity {
             //Back to parent Directory
             case android.R.id.home:
                 if(path[0].equals(Environment.getExternalStorageDirectory().getAbsolutePath())){
+                    cBox = false;
+                    view_List_File.setAdapter(fileAdapter);
                     return true;
                 }
                 int i = path[0].length()-1;
@@ -148,9 +154,15 @@ public class MainActivity extends AppCompatActivity {
                 for(int ii=0;ii<fileList.size();ii++){
                     try {
                         CheckBox c = (CheckBox) view_List_File.getChildAt(ii).findViewById(R.id.checkbox);
+                        TextView t = view_List_File.getChildAt(ii).findViewById(R.id.file_name);
                         if(c.isChecked()){
-                            File file_del = new File(fileList.get(ii).path);
-                            deleteFile(file_del);
+                            for(mFile fi : fileList){
+                                if(fi.name.equals(t.getText().toString())){
+                                    File file_del = new File(fi.path);
+                                    deleteFile(file_del);
+                                    break;
+                                }
+                            }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -176,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
             case R.id.menu_new:
                 int con = 0;
                 while(true){
-                    File folder = new File(path[0] + "/Folder"+fileList.size()+con);
+                    File folder = new File(path[0] + "/Folder"+Integer.toString(fileList.size()+con));
                     if(!folder.exists()){
                         folder.mkdir();
                         break;
@@ -304,5 +316,74 @@ public class MainActivity extends AppCompatActivity {
         intent.setDataAndType(uri, mime);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(intent);
+    }
+    public static class CopyUtil {
+        // utility method which is exposed to the outside
+        public static void copyDirectory(File sourceDir, File destDir)
+                throws IOException {
+            // creates the destination directory if it does not exist
+            if (!destDir.exists()) {
+                destDir.mkdirs();
+            }
+
+            // throws exception if the source does not exist
+            if (!sourceDir.exists()) {
+                throw new IllegalArgumentException("sourceDir does not exist");
+            }
+
+            // throws exception if the arguments are not directories
+            if (sourceDir.isFile() || destDir.isFile()) {
+                throw new IllegalArgumentException(
+                        "Either sourceDir or destDir is not a directory");
+            }
+
+            copyDirectoryImpl(sourceDir, destDir);
+        }
+
+        // implementation of copy directory method
+        private static void copyDirectoryImpl(File sourceDir, File destDir)
+                throws IOException {
+            File[] items = sourceDir.listFiles();
+            if (items != null && items.length > 0) {
+                for (File anItem : items) {
+                    if (anItem.isDirectory()) {
+                        // create the directory in the destination
+                        File newDir = new File(destDir, anItem.getName());
+                        System.out.println("CREATED DIR: "
+                                + newDir.getAbsolutePath());
+                        newDir.mkdir();
+
+                        // copy the directory (recursive call)
+                        copyDirectory(anItem, newDir);
+                    } else {
+                        // copy the file
+                        File destFile = new File(destDir, anItem.getName());
+                        copySingleFile(anItem, destFile);
+                    }
+                }
+            }
+        }
+
+        // copy a file
+        private static void copySingleFile(File sourceFile, File destFile)
+                throws IOException {
+            if (!destFile.exists()) {
+                destFile.createNewFile();
+            }
+            FileChannel sourceChannel = null;
+            FileChannel destChannel = null;
+            try {
+                sourceChannel = new FileInputStream(sourceFile).getChannel();
+                destChannel = new FileOutputStream(destFile).getChannel();
+                sourceChannel.transferTo(0, sourceChannel.size(), destChannel);
+            } finally {
+                if (sourceChannel != null) {
+                    sourceChannel.close();
+                }
+                if (destChannel != null) {
+                    destChannel.close();
+                }
+            }
+        }
     }
 }
