@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import android.Manifest;
@@ -14,6 +15,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.Settings;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -44,7 +46,6 @@ public class MainActivity extends AppCompatActivity {
     String[] path;
     boolean cBox = false;
     boolean Past = false;
-    private int tool_menu;
     boolean isDel = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,13 +56,25 @@ public class MainActivity extends AppCompatActivity {
         actionBar.setDisplayHomeAsUpEnabled(true);
 
         //Request permission
-        ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.READ_EXTERNAL_STORAGE}, STORE);
+        int MyOsVer = Build.VERSION.SDK_INT;
+        if(MyOsVer > Build.VERSION_CODES.LOLLIPOP){
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.READ_EXTERNAL_STORAGE}, STORE);
+            }
+            if(MyOsVer == Build.VERSION_CODES.R){
+                if (!Environment.isExternalStorageManager()) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                    Uri uri = Uri.fromParts("package", getPackageName(), null);
+                    intent.setData(uri);
+                    startActivity(intent);
+                }
+            }
+        }
 
         //Read file
         path = new String[]{Environment.getExternalStorageDirectory().getAbsolutePath()};
         File f = new File(path[0]);
         File[] files = f.listFiles();
-
 
         //Copy file init
         pathFileCopy = new ArrayList<>();
@@ -87,25 +100,15 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int ii, long l) {
                 if(fileList.get(ii).type.equals("file")) {
                     File ff =new File(fileList.get(ii).path);
-                    openFile(ff);
+                    try {
+                        openFile(ff);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     return;
                 }
                 path[0] = fileList.get(ii).path;
-                File f = new File(path[0]);
-                File[] files = f.listFiles();
-                fileList.clear();
-
-                fileList = new ArrayList<>();
-                for(int i=0;i<files.length;i++){
-                    if(files[i].isDirectory())
-                        fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
-                    else {
-                        fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
-                    }
-                }
-                fileAdapter = new MyAdapterFile(fileList);
-                view_List_File = findViewById(R.id.list_file);
-                view_List_File.setAdapter(fileAdapter);
+                updateView();
             }
         });
     }
@@ -138,22 +141,7 @@ public class MainActivity extends AppCompatActivity {
                 for(;path[0].charAt(i)!='/';i--){
                 }
                 path[0] = path[0].substring(0,i);
-                File f = new File(path[0]);
-                File[] files = f.listFiles();
-                fileList.clear();
-
-                fileList = new ArrayList<>();
-                for(i=0;i<files.length;i++){
-                    if(files[i].isDirectory())
-                        fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
-                    else {
-                        fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
-                    }
-                }
-                cBox = false;
-                fileAdapter = new MyAdapterFile(fileList);
-                view_List_File = findViewById(R.id.list_file);
-                view_List_File.setAdapter(fileAdapter);
+                updateView();
                 return true;
 
                 //Choose menu
@@ -216,21 +204,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     }else con++;
                 }
-                f = new File(path[0]);
-                files = f.listFiles();
-                fileList.clear();
-
-                fileList = new ArrayList<>();
-                for(i=0;i<files.length;i++){
-                    if(files[i].isDirectory())
-                        fileList.add(new mFile(idCnt++,files[i].getName(),Integer.toString(files[i].list().length),"folder",files[i].getAbsolutePath()));
-                    else {
-                        fileList.add(new mFile(idCnt++,files[i].getName(),String.valueOf(files[i].length()/1024),"file",files[i].getAbsolutePath()));
-                    }
-                }
-                fileAdapter = new MyAdapterFile(fileList);
-                view_List_File = findViewById(R.id.list_file);
-                view_List_File.setAdapter(fileAdapter);
+                updateView();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -342,7 +316,6 @@ public class MainActivity extends AppCompatActivity {
     public static class CopyUtil {
         public static void copyFile(File src, File dst) {
             try {
-
                 if (src.isDirectory()) {
                     if (!dst.exists()) {
                         dst.mkdirs();
@@ -353,7 +326,6 @@ public class MainActivity extends AppCompatActivity {
                                 dst, children[i]));
                     }
                 } else {
-
                     copySingleFile(src, dst);
                 }
 
